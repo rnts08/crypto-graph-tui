@@ -36,6 +36,8 @@ The binary will be created as `./graph-watcher`.
 ./graph-watcher
 ```
 
+![Screenshot](Screenshot.jpg)
+
 ### Command-line options
 
 The application now supports traditional CLI flags in addition to the single-argument
