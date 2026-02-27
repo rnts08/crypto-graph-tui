@@ -13,17 +13,6 @@ A high-performance, **fully responsive** Go terminal UI application that display
 - ⏱️ **Configurable Timeframes** – Toggle between 1D, Weekly, Monthly, and Yearly views
 - 🛡️ **Signal-Safe** – Respects Ctrl+C (quit)
 - 📊 **Real-Time Refresh** – Continuous updates with countdown timer
-- ✅ **Comprehensive Tests** – Full unit test coverage for config, layout, rendering, and providers
-
-## Why Bubble Tea?
-
-The original tview-based implementation was unresponsive and would lock up on key presses. This version uses **Charm Bracelet's Bubble Tea** which provides:
-
-- ✅ **Event-driven architecture** – Responsive to all keypresses instantly
-- ✅ **No blocking I/O on UI** – Background refresh loops don't freeze input
-- ✅ **Clean state management** – Elm-inspired Model/View/Update pattern
-- ✅ **Terminal best practices** – Proper signal handling and graceful shutdown
-- ✅ **Industry standard** – Actively maintained and widely deployed
 
 ## Requirements
 
@@ -94,6 +83,7 @@ Symbol names can be uppercase or lowercase; `-USD` suffix is optional.
 ## Configuration
 
 Configuration is stored at:
+
 - `$XDG_CONFIG_HOME/graph-watcher/config.json` (preferred), or
 - `~/.graph-watcher.json` (fallback)
 
@@ -128,7 +118,7 @@ Both sources are free and do not require authentication. If one fails, the app a
 
 ## Common Symbols
 
-The built-in symbol list includes major cryptocurrencies:
+The built-in symbol list includes major cryptocurrencies, for example:
 
 - BTC (Bitcoin)
 - ETH (Ethereum)
@@ -149,6 +139,19 @@ The built-in symbol list includes major cryptocurrencies:
 
 ## Development
 
+```bash
+git checkout -b new_branch
+```
+
+Do your changes, and fixes
+
+```bash
+git commit -a
+git push
+```
+
+Make a pull requests
+
 ### Running Tests
 
 ```bash
@@ -156,6 +159,7 @@ make test
 ```
 
 All modules include unit tests:
+
 - `config_test.go` – Configuration loading, saving, and merging
 - `chart_test.go` – ASCII rendering and layout math
 - `provider_test.go` – Data provider logic and fallback mechanism
@@ -195,10 +199,14 @@ make clean
 - Per-symbol refresh intervals
 - Color themes and alternate renderers
 
-## License
-
-MIT
-
 ## Contributing
 
 Pull requests welcome! Please include tests for any new functionality.
+
+## Support and donations
+
+Support the Project
+
+ETH/ERC20: 0x9b4FfDADD87022C8B7266e28ad851496115ffB48
+SOL: 68L4XzSbRUaNE4UnxEd8DweSWEoiMQi6uygzERZLbXDw
+BTC: bc1qkmzc6d49fl0edyeynezwlrfqv486nmk6p5pmta
