@@ -2,6 +2,12 @@ package main
 
 import "testing"
 
+func TestDefaultSymbols(t *testing.T) {
+	if got := defaultSymbols(); len(got) == 0 {
+		t.Error("expected default symbols, got empty slice")
+	}
+}
+
 func TestParseSymbols_Defaults(t *testing.T) {
 	if got := parseSymbols(""); len(got) != 4 {
 		t.Errorf("expected default 4 symbols, got %v", got)

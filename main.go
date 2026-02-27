@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -22,7 +23,8 @@ func main() {
 	// Load configuration
 	cfg, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Command-line flags (symbols, api-key, interval)
@@ -55,9 +57,6 @@ func main() {
 
 	// Create client
 	client := NewClient()
-	if cfg.APIKey != "" {
-		client.AddProvider(NewCoinMarketCapProvider(cfg.APIKey))
-	}
 
 	// Create and run model
 	m := NewModel(cfg, client)
@@ -87,7 +86,8 @@ func main() {
 
 	_, err = p.Run()
 	if err != nil {
-		log.Fatalf("Error running program: %v", err)
+		fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Save config on exit

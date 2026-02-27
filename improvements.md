@@ -47,15 +47,15 @@ These are actionable items discovered while auditing the current codebase; each 
 
 10. Changelog and release process
     - Rationale: No changelog or versioning present; useful for releases and user-facing notes.
-    - Suggestion: Add a `CHANGELOG.md` and tag releases; include a `version` constant in `main.go` that can be baked into builds. (Done)
+    - Suggestion: Add a `CHANGELOG.md` and tag releases; include a `version` constant in `main.go` that can be baked into builds.
 
 11. Optional: Add CoinMarketCap provider
     - Rationale: Additional paid sources increase resilience for users with API keys.
-    - Suggestion: Implement as a provider behind a config-provided API key and mark it higher priority when configured. (Done)
+    - Suggestion: Implement as a provider behind a config-provided API key and mark it higher priority when configured.
 
 12. UX polishing: smoother titles and volume display
     - Rationale: Users may want volume/time-range in title and clearer formatting when widths are narrow.
-    - Suggestion: Include latest volume in title and truncate intelligently; consider vertical compression modes. (Done)
+    - Suggestion: Include latest volume in title and truncate intelligently; consider vertical compression modes.
 
 ---
 

@@ -1,4 +1,5 @@
 _attic/*
+bin/
 .env
 .log
 .DS_Store

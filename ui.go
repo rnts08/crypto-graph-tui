@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -72,12 +71,14 @@ func NewModel(cfg *Config, client *Client) *Model {
 		symbols:         cfg.Symbols,
 		selectedSymbols: make(map[string]bool),
 		symbolList: []string{
-			"BTC-USD", "ETH-USD", "SOL-USD", "LTC-USD",
-			"ADA-USD", "AVAX-USD", "MATIC-USD", "DOGE-USD",
-			"XRP-USD", "XMR-USD",
+			"BTC-USD", "ETH-USD", "SOL-USD", "LTC-USD", "ADA-USD", "AVAX-USD",
+			"MATIC-USD", "DOGE-USD", "XRP-USD", "XMR-USD", "PEPE-USD", "UNI-USD",
+			"USDT-USD", "BNB-USD", "BCH-USD", "ZBCN-USD", "BABYDOGE-USD",
+			"NOBODY-USD", "SUI-USD", "HYPE-USD", "AZERO-USD", "LINK-USD",
+			"TRUMP-USD", "TOWNS-USD", "SNX-USD", "MON-USD",
 		},
 		mode:        ModeMain,
-		nextRefresh: time.Now().Add(60 * time.Second),
+		nextRefresh: time.Now().Add(time.Duration(cfg.RefreshInterval) * time.Second),
 	}
 }
 
@@ -109,7 +110,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		// Check if it's time to refresh data
 		if time.Now().After(m.nextRefresh) {
-			m.nextRefresh = time.Now().Add(60 * time.Second)
+			m.nextRefresh = time.Now().Add(time.Duration(m.config.RefreshInterval) * time.Second)
 			return m, tea.Batch(m.fetchAllChartsCmd(), m.tickCmd())
 		}
 		return m, m.tickCmd()
@@ -477,17 +478,6 @@ func (m *Model) tickCmd() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
-}
-
-// suspendCmd returns a command that suspends the process to the shell using SIGTSTP.
-// The terminal will return to the shell on suspend and this process will be stopped.
-// Upon resuming (SIGCONT) bubble tea should continue with the model intact.
-func suspendCmd() tea.Cmd {
-	return func() tea.Msg {
-		// send SIGTSTP to ourselves
-		syscall.Kill(syscall.Getpid(), syscall.SIGTSTP)
-		return nil
-	}
 }
 
 // concurrency semaphore for fetching symbols.

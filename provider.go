@@ -218,112 +218,6 @@ func (cb *CoinbaseProvider) FetchOHLC(symbol, view string, count int) ([]Candle,
 	return out, nil
 }
 
-// CoinMarketCapProvider fetches data using a paid API key.
-type CoinMarketCapProvider struct {
-	client HTTPClient
-	apiKey string
-}
-
-func NewCoinMarketCapProvider(apiKey string) *CoinMarketCapProvider {
-	return &CoinMarketCapProvider{
-		client: &http.Client{Timeout: 10 * time.Second},
-		apiKey: apiKey,
-	}
-}
-
-func (cmc *CoinMarketCapProvider) FetchOHLC(symbol, view string, count int) ([]Candle, error) {
-	if cmc.apiKey == "" {
-		return nil, fmt.Errorf("no API key provided for CoinMarketCap")
-	}
-
-	debug := os.Getenv("CMC_DEBUG") == "1"
-	// Map view to CMC interval
-	interval := "daily"
-	switch strings.ToUpper(view) {
-	case "1D":
-		interval = "hourly"
-	case "WTD", "MTD":
-		interval = "daily"
-	case "YTD":
-		interval = "weekly"
-	}
-
-	// Endpoint: /v2/cryptocurrency/ohlcv/historical
-	// Note: CMC requires 'symbol' and 'interval'
-	u := "https://pro-api.coinmarketcap.com/v2/cryptocurrency/ohlcv/historical"
-	v := url.Values{}
-	v.Set("symbol", strings.Split(symbol, "-")[0])
-	v.Set("interval", interval)
-	v.Set("count", fmt.Sprintf("%d", count))
-
-	reqUrl := fmt.Sprintf("%s?%s", u, v.Encode())
-	if debug {
-		log.Printf("[CMC] Requesting OHLC: %s", reqUrl)
-	}
-
-	req, err := http.NewRequest("GET", reqUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-CMC_PRO_API_KEY", cmc.apiKey)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := cmc.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("CoinMarketCap API error: status=%s", resp.Status)
-	}
-
-	// CMC response structure is complex, we target the quotes
-	var result struct {
-		Data map[string][]struct {
-			Quotes []struct {
-				Quote struct {
-					USD struct {
-						Open      float64   `json:"open"`
-						High      float64   `json:"high"`
-						Low       float64   `json:"low"`
-						Close     float64   `json:"close"`
-						Volume    float64   `json:"volume"`
-						Timestamp time.Time `json:"timestamp"`
-					} `json:"USD"`
-				} `json:"quote"`
-			} `json:"quotes"`
-		} `json:"data"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	var candles []Candle
-	for _, symData := range result.Data {
-		for _, q := range symData {
-			for _, item := range q.Quotes {
-				val := item.Quote.USD
-				candles = append(candles, Candle{
-					Time:   val.Timestamp,
-					Open:   val.Open,
-					High:   val.High,
-					Low:    val.Low,
-					Close:  val.Close,
-					Volume: val.Volume,
-				})
-			}
-		}
-	}
-
-	if len(candles) == 0 {
-		return nil, fmt.Errorf("no candles returned from CMC")
-	}
-
-	return candles, nil
-}
-
 // Client tries multiple providers and returns the first successful result.
 type Client struct {
 	providers []PriceProvider
@@ -337,11 +231,6 @@ func NewClient() *Client {
 			NewCoinbaseProvider(),
 		},
 	}
-}
-
-// AddProvider adds a provider to the front of the list (higher priority).
-func (c *Client) AddProvider(p PriceProvider) {
-	c.providers = append([]PriceProvider{p}, c.providers...)
 }
 
 // FetchOHLC tries each provider in order and returns the first successful result.
@@ -367,26 +256,193 @@ func coingeckoIDForSymbol(symbol string) string {
 		s = parts[0]
 	}
 	switch s {
+	// Top cryptocurrencies
 	case "BTC":
 		return "bitcoin"
 	case "ETH":
 		return "ethereum"
+	case "BNB":
+		return "binancecoin"
 	case "SOL":
 		return "solana"
-	case "LTC":
-		return "litecoin"
+	case "XRP":
+		return "ripple"
+	case "DOGE":
+		return "dogecoin"
 	case "ADA":
 		return "cardano"
 	case "AVAX":
 		return "avalanche-2"
+	case "SUI":
+		return "sui"
 	case "MATIC":
 		return "matic-network"
-	case "DOGE":
-		return "dogecoin"
-	case "XRP":
-		return "ripple"
+	case "LINK":
+		return "chainlink"
+	case "UNI":
+		return "uniswap"
+	case "LTC":
+		return "litecoin"
+	case "AAVE":
+		return "aave"
+	case "ARB":
+		return "arbitrum"
+	case "OP":
+		return "optimism"
+	case "MNT":
+		return "mantle"
+	case "PEPE":
+		return "pepe"
+	case "SHIB":
+		return "shiba-inu"
 	case "XMR":
 		return "monero"
+	case "ZEC":
+		return "zcash"
+	case "XLM":
+		return "stellar"
+	case "VET":
+		return "vechain"
+	case "ALGO":
+		return "algorand"
+	case "DOT":
+		return "polkadot"
+	case "ATOM":
+		return "cosmos"
+	case "ICP":
+		return "internet-computer"
+	case "NEAR":
+		return "near"
+	case "FIL":
+		return "filecoin"
+	case "GRT":
+		return "the-graph"
+	case "SAND":
+		return "the-sandbox"
+	case "MANA":
+		return "decentraland"
+	case "APT":
+		return "aptos"
+	case "TIA":
+		return "celestia"
+	case "SEI":
+		return "sei"
+	case "JUP":
+		return "jupiter"
+	case "INJ":
+		return "injective"
+	case "BONK":
+		return "bonk"
+	case "WIF":
+		return "dogwifcoin"
+	case "FWOG":
+		return "fwog"
+	case "BLUR":
+		return "blur"
+	case "ENS":
+		return "ethereum-name-service"
+	case "LIDO":
+		return "lido-dao"
+	case "FRAX":
+		return "frax"
+	case "USDC":
+		return "usd-coin"
+	case "USDT":
+		return "tether"
+	case "DAI":
+		return "dai"
+	case "BUSD":
+		return "binance-usd"
+	case "TUSD":
+		return "true-usd"
+	case "USDP":
+		return "paxos-standard"
+	case "USDD":
+		return "usdd"
+	case "AGLD":
+		return "adventure-gold"
+	case "GALA":
+		return "gala"
+	case "ILV":
+		return "illuvium"
+	case "AXS":
+		return "axie-infinity"
+	case "RON":
+		return "ronin"
+	case "MAGIC":
+		return "magic"
+	case "FLUX":
+		return "zelcash"
+	case "STX":
+		return "stacks"
+	case "RSR":
+		return "reserve-rights-token"
+	case "BAL":
+		return "balancer"
+	case "CRV":
+		return "curve-dao-token"
+	case "CVX":
+		return "convex-finance"
+	case "YEARN":
+		return "yearn-finance"
+	case "THETA":
+		return "theta-token"
+	case "TFUEL":
+		return "theta-fuel"
+	case "RUNE":
+		return "thorchain"
+	case "ZRX":
+		return "0x"
+	case "1INCH":
+		return "1inch"
+	case "DYDX":
+		return "dydx-chain"
+	case "COMP":
+		return "compound-governance-token"
+	case "MAKER":
+		return "maker"
+	case "SNX":
+		return "synthetix-network-token"
+	case "SUSHI":
+		return "sushi"
+	case "RAYDIUM":
+		return "raydium"
+	case "MARINADE":
+		return "marinade"
+	case "KAVA":
+		return "kava"
+	case "KEY":
+		return "selfkey"
+	case "ROSE":
+		return "oasis-network"
+	case "REN":
+		return "republic-protocol"
+	case "OCEAN":
+		return "ocean-protocol"
+	case "NU":
+		return "nucypher"
+	case "SS":
+		return "savvysage"
+	case "WBTC":
+		return "wrapped-bitcoin"
+	case "WETH":
+		return "weth"
+	case "RENBTC":
+		return "renbtc"
+	case "SBTC":
+		return "seth-2"
+	case "LST":
+		return "loop-strategy-token"
+	case "LDO":
+		return "lido-dao"
+	case "RETH":
+		return "rocket-pool-eth"
+	case "STETH":
+		return "lido-staked-ether"
+	case "CBETH":
+		return "coinbase-wrapped-staked-eth"
+	case "ETHX":
+		return "liquid-staking-token"
 	}
 	return strings.ToLower(s)
 }
