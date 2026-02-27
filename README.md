@@ -21,6 +21,8 @@ A high-performance, **fully responsive** Go terminal UI application that display
 
 ## Installation
 
+Download binary for your operation system from [latest releases](https://github.com/rnts08/crypto-graph-tui/releases) or build from source.
+
 ```bash
 cd /path/to/graph_watcher
 make build
