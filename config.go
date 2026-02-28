@@ -32,19 +32,19 @@ func DefaultConfig() *Config {
 }
 
 // ConfigPath returns the path to the config file.
-// It prefers ${XDG_CONFIG_HOME}/graph-watcher/config.json,
-// falling back to ~/.graph-watcher.json.
+// It prefers ${XDG_CONFIG_HOME}/crypto-graph-tui/config.json,
+// falling back to ~/.crypto-graph-tui.json.
 func ConfigPath() (string, error) {
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
 	if xdgConfigHome != "" {
-		return filepath.Join(xdgConfigHome, "graph-watcher", "config.json"), nil
+		return filepath.Join(xdgConfigHome, "crypto-graph-tui", "config.json"), nil
 	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".graph-watcher.json"), nil
+	return filepath.Join(home, ".crypto-graph-tui.json"), nil
 }
 
 // LoadConfig reads the configuration from disk.

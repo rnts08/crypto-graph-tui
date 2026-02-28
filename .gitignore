@@ -17,4 +17,5 @@ dist/
 build/
 *.egg
 *.egg-info/
-graph-watcher
+graph-watcher*
+crypto-graph-tui-*

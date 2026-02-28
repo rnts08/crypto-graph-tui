@@ -1,11 +1,18 @@
-BINARY_NAME=graph-watcher
+BINARY_NAME=crypto-graph-tui
 VERSION=1.1.0
 BUILD_DIR=bin
+GOOS?=$(shell go env GOOS)
+GOARCH?=$(shell go env GOARCH)
+BINARY_TARGET=$(BINARY_NAME)-$(GOOS)-$(GOARCH)
+EXT :=
+ifeq ($(GOOS),windows)
+EXT = .exe
+endif
 
 .PHONY: build build-all build-linux build-windows build-darwin clean test help
 
 help:
-	@echo "graph-watcher - Terminal Crypto Candle Chart Viewer"
+	@echo "crypto-graph-tui - Terminal Crypto Candle Chart Viewer"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  build         - Build for current OS"
@@ -16,8 +23,8 @@ help:
 
 build: clean
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) .
-	@echo "✓ Built: $(BUILD_DIR)/$(BINARY_NAME)"
+	go build -o $(BUILD_DIR)/$(BINARY_TARGET)$(EXT) .
+	@echo "✓ Built: $(BUILD_DIR)/$(BINARY_TARGET)$(EXT)"
 
 build-linux:
 	@mkdir -p $(BUILD_DIR)

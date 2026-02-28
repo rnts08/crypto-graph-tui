@@ -4,12 +4,14 @@ A high-performance, **fully responsive** Go terminal UI application that display
 
 ## Features
 
+Works on Windows, Linux and MacOSX!
+
 - 🕯️ **ASCII Candlestick Charts** – Beautiful colored candles rendered directly in the terminal
 - ⚡ **Fully Responsive** – Powered by Bubble Tea for instant key responsiveness, no freezing or lag
 - 🔄 **Multi-Source Data** – Automatic fallback between CoinGecko and Coinbase APIs
 - 🎨 **Auto-Tiling Layout** – Charts intelligently rearrange as you add/remove symbols
 - ➕ **Dynamic Symbol Management** – Press `A` to add/remove crypto pairs via interactive modal (and press `c` inside modal to type any custom symbol)
-- 💾 **Persistent Configuration** – Current symbol list and settings saved to `~/.graph-watcher.json`
+- 💾 **Persistent Configuration** – Current symbol list and settings saved to `~/.crypto-graph-tui.json`
 - ⏱️ **Configurable Timeframes** – Toggle between 1D, Weekly, Monthly, and Yearly views
 - 🛡️ **Signal-Safe** – Respects Ctrl+C (quit)
 - 📊 **Real-Time Refresh** – Continuous updates with countdown timer
@@ -28,14 +30,20 @@ cd /path/to/graph_watcher
 make build
 ```
 
-The binary will be created as `./graph-watcher`.
+The binary will be created as `./crypto-graph-tui-<OS>-<ARCH>`. For example, building on Linux x86_64 produces `./crypto-graph-tui-linux-amd64` (Windows builds produce a `.exe` suffix).
 
 ## Usage
 
 ### Basic usage (default symbols: BTC-USD, ETH-USD, LTC-USD, SOL-USD)
 
 ```bash
-./graph-watcher
+./crypto-graph-tui-<OS>-<ARCH>
+
+# Example (Linux):
+./crypto-graph-tui-linux-amd64
+
+# Example (Windows PowerShell):
+.\crypto-graph-tui-windows-amd64.exe
 ```
 
 ![Screenshot](Screenshot.jpg)
@@ -46,11 +54,14 @@ The application now supports traditional CLI flags in addition to the single-arg
 symbol list. Available options:
 
 ```bash
-./graph-watcher \ 
-    --symbols="BTC-USD,ETH-USD,ADA-USD" \ 
-    --api-key="<CMC-key>" \ 
-    --interval=30 \ 
-    --theme=dark
+./crypto-graph-tui-<OS>-<ARCH> \ 
+  --symbols="BTC-USD,ETH-USD,ADA-USD" \ 
+  --api-key="<CMC-key>" \ 
+  --interval=30 \ 
+  --theme=dark
+
+# Example (Windows PowerShell):
+.\crypto-graph-tui-windows-amd64.exe --symbols="BTC-USD,ETH-USD"
 ```
 
 You can specify one of the built-in themes (`default`, `dark`, `retro`).
@@ -62,7 +73,10 @@ You can specify one of the built-in themes (`default`, `dark`, `retro`).
 You can still supply a bare symbol string as the first argument for quick runs:
 
 ```bash
-./graph-watcher "BTC,ETH"
+./crypto-graph-tui-<OS>-<ARCH> "BTC,ETH"
+
+# Example (Linux):
+./crypto-graph-tui-linux-amd64 "BTC,ETH"
 ```
 
 Symbol names can be uppercase or lowercase; `-USD` suffix is optional.
@@ -88,8 +102,8 @@ Symbol names can be uppercase or lowercase; `-USD` suffix is optional.
 
 Configuration is stored at:
 
-- `$XDG_CONFIG_HOME/graph-watcher/config.json` (preferred), or
-- `~/.graph-watcher.json` (fallback)
+- `$XDG_CONFIG_HOME/crypto-graph-tui/config.json` (preferred), or
+- `~/.crypto-graph-tui.json` (fallback)
 
 Example config:
 
@@ -211,6 +225,8 @@ Pull requests welcome! Please include tests for any new functionality.
 
 Support the Project
 
-ETH/ERC20: 0x9b4FfDADD87022C8B7266e28ad851496115ffB48
-SOL: 68L4XzSbRUaNE4UnxEd8DweSWEoiMQi6uygzERZLbXDw
-BTC: bc1qkmzc6d49fl0edyeynezwlrfqv486nmk6p5pmta
+ETH/ERC20: ***0x9b4FfDADD87022C8B7266e28ad851496115ffB48***
+
+SOL: ***68L4XzSbRUaNE4UnxEd8DweSWEoiMQi6uygzERZLbXDw***
+
+BTC: ***bc1qkmzc6d49fl0edyeynezwlrfqv486nmk6p5pmta***
