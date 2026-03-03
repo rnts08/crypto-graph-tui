@@ -41,6 +41,10 @@ type Model struct {
 
 	// Spinner
 	spinnerState int
+
+	// Selection and zoom
+	selectedChartIndex int
+	zoomed             bool
 }
 
 // UIModes
@@ -92,10 +96,12 @@ func NewModel(cfg *Config, client *Client) *Model {
 			"NOBODY-USD", "SUI-USD", "HYPE-USD", "AZERO-USD", "LINK-USD",
 			"TRUMP-USD", "TOWNS-USD", "SNX-USD", "MON-USD",
 		},
-		mode:             ModeMain,
-		nextRefresh:      time.Now().Add(time.Duration(cfg.RefreshInterval) * time.Second),
-		pendingRefreshes: 0,
-		spinnerState:     0,
+		mode:               ModeMain,
+		nextRefresh:        time.Now().Add(time.Duration(cfg.RefreshInterval) * time.Second),
+		pendingRefreshes:   0,
+		spinnerState:       0,
+		selectedChartIndex: 0,
+		zoomed:             false,
 	}
 }
 
@@ -190,6 +196,42 @@ func (m *Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.mode = ModeConfirmQuit
 		return m, nil
 
+	case "z", "Z":
+		if len(m.symbols) > 0 {
+			m.zoomed = !m.zoomed
+		}
+		return m, nil
+
+	case "left", "h":
+		if !m.zoomed && m.selectedChartIndex > 0 {
+			m.selectedChartIndex--
+		}
+		return m, nil
+
+	case "right", "l":
+		if !m.zoomed && m.selectedChartIndex < len(m.symbols)-1 {
+			m.selectedChartIndex++
+		}
+		return m, nil
+
+	case "up", "k":
+		if !m.zoomed && len(m.symbols) > 1 {
+			_, cols := GridForCount(len(m.symbols))
+			if m.selectedChartIndex >= cols {
+				m.selectedChartIndex -= cols
+			}
+		}
+		return m, nil
+
+	case "down", "j":
+		if !m.zoomed && len(m.symbols) > 1 {
+			rows, cols := GridForCount(len(m.symbols))
+			if m.selectedChartIndex/cols < rows-1 { // if not in the last row
+				m.selectedChartIndex = min(m.selectedChartIndex+cols, len(m.symbols)-1)
+			}
+		}
+		return m, nil
+
 	case "a", "A":
 		m.mode = ModeAddSymbol
 		m.symbolListIndex = 0
@@ -198,26 +240,32 @@ func (m *Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		for _, sym := range m.symbolList {
 			m.selectedSymbols[sym] = m.hasSymbol(sym)
 		}
+		m.zoomed = false
 		return m, nil
 
 	case " ":
 		m.nextRefresh = time.Now().Add(time.Duration(m.config.RefreshInterval) * time.Second)
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 
 	case "1":
 		m.view = "1D"
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 
 	case "2":
 		m.view = "WTD"
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 
 	case "3":
 		m.view = "MTD"
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 
 	case "4":
 		m.view = "YTD"
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 	}
 
@@ -286,6 +334,8 @@ func (m *Model) handleAddSymbolKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		m.mode = ModeMain
 		m.selectedSymbols = make(map[string]bool)
+		m.selectedChartIndex = 0
+		m.zoomed = false
 		return m, m.startRefreshCmd()
 
 	case "ctrl+c":
@@ -387,16 +437,43 @@ func (m *Model) viewMain() string {
 		spinner = fmt.Sprintf(" %s Refreshing...", spinnerChars[m.spinnerState])
 	}
 
-	statusBar := fmt.Sprintf("v%s | Refresh in %02d:%02d | View: %s | A=add 1-4=timeframe SPACE=refresh Q=quit%s",
+	statusBar := fmt.Sprintf("v%s | Refresh in %02d:%02d | View: %s | A=add Z=zoom ARROWS=select 1-4=timeframe SPACE=refresh Q=quit%s",
 		version, mins, secs, m.view, spinner)
+
+	var result strings.Builder
+
+	if m.zoomed {
+		chartHeight := m.height - 1 // for status bar
+		if chartHeight < 0 {
+			chartHeight = 0
+		}
+		sym := m.symbols[m.selectedChartIndex]
+		chart, ok := m.charts[sym]
+		if !ok {
+			chart = &ChartData{Symbol: sym}
+			m.charts[sym] = chart
+		}
+
+		var content string
+		if chart.Error != "" {
+			content = fmt.Sprintf("[%s] ERROR: %s", sym, chart.Error)
+		} else if len(chart.Candles) == 0 {
+			content = fmt.Sprintf("[%s] Loading...", sym)
+		} else {
+			content = RenderCandlesASCII(sym, chart.Candles, m.width, chartHeight, m.config.Theme, m.view, true, true)
+		}
+		result.WriteString(content)
+		result.WriteString("\n")
+		result.WriteString(statusBar)
+		return result.String()
+	}
 
 	// Use grid layout (balanced rows/cols via shared utility)
 	r, c := GridForCount(len(m.symbols))
+
 	cols := c
 	rows := r
 	chartHeight := (m.height - 3) / rows
-
-	var result strings.Builder
 
 	for row := 0; row < rows; row++ {
 		// Render row of charts
@@ -415,13 +492,14 @@ func (m *Model) viewMain() string {
 			}
 
 			var content string
+			isSelected := !m.zoomed && idx == m.selectedChartIndex
 			if chart.Error != "" {
 				content = fmt.Sprintf("[%s] ERROR: %s", sym, chart.Error)
 			} else if len(chart.Candles) == 0 {
 				content = fmt.Sprintf("[%s] Loading...", sym)
 			} else {
 				chartWidth := (m.width / cols) - 1
-				content = RenderCandlesASCII(sym, chart.Candles, chartWidth, chartHeight, m.config.Theme)
+				content = RenderCandlesASCII(sym, chart.Candles, chartWidth, chartHeight, m.config.Theme, m.view, isSelected, false)
 			}
 
 			lines := strings.Split(content, "\n")
@@ -555,15 +633,4 @@ func (m *Model) hasSymbol(symbol string) bool {
 		}
 	}
 	return false
-}
-
-// GridForCountCols returns the number of columns for a count.
-// It now delegates to the shared GridForCount helper so the UI
-// layout matches the chart mathematics and remains balanced.
-func GridForCountCols(n int) int {
-	if n <= 0 {
-		return 0
-	}
-	_, cols := GridForCount(n)
-	return cols
 }

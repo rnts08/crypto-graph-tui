@@ -87,7 +87,7 @@ func TestConfigPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ConfigPath failed: %v", err)
 	}
-	expected := filepath.Join("/tmp/xdg", "graph-watcher", "config.json")
+	expected := filepath.Join("/tmp/xdg", "crypto-graph-tui", "config.json")
 	if path != expected {
 		t.Errorf("expected %s, got %s", expected, path)
 	}
@@ -101,8 +101,8 @@ func TestConfigPath(t *testing.T) {
 	if !filepath.IsAbs(path) {
 		t.Errorf("path should be absolute, got %s", path)
 	}
-	if !strings.HasSuffix(path, ".graph-watcher.json") {
-		t.Errorf("expected path to end with .graph-watcher.json, got %s", path)
+	if !strings.HasSuffix(path, ".crypto-graph-tui.json") {
+		t.Errorf("expected path to end with .crypto-graph-tui.json, got %s", path)
 	}
 }
 

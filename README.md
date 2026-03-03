@@ -85,6 +85,8 @@ Symbol names can be uppercase or lowercase; `-USD` suffix is optional.
 
 | Key | Action |
 |-----|--------|
+| **Z** | Zoom in/out on the selected chart |
+| **←↑→↓** or **hjkl** | Select a chart to zoom |
 | **Space** | Refresh all charts |
 | **A** | Open symbol selection modal |
 | **1** | Switch to 1D (daily) view |

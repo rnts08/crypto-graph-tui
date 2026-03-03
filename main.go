@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "1.1.0"
+const version = "1.1.1"
 
 func main() {
 	defer func() {

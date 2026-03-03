@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-03-03
+
+### Added
+- Users can now press space to update all graphs immediately
+- There's a visual indicator in the status field that shows the process.
+- Added the ability to zoom in on specific graphs with the Z key.
+- Added indicators for the timescale on the graphs
+
 ## [1.1.0] - 2026-02-27
 
 ### Added

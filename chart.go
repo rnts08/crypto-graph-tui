@@ -22,7 +22,7 @@ func colorForTheme(theme string) (green, red string) {
 
 // RenderCandlesASCII renders a slice of candles as an ASCII candlestick chart.
 // It creates a bordered chart with wicks and bodies, scaled to fit the given width and height.
-func RenderCandlesASCII(symbol string, candles []Candle, width, height int, theme string) string {
+func RenderCandlesASCII(symbol string, candles []Candle, width, height int, theme, view string, isSelected, isZoomed bool) string {
 	if width < 10 || height < 3 || len(candles) == 0 {
 		return fmt.Sprintf("%s: not enough space or data", symbol)
 	}
@@ -48,10 +48,11 @@ func RenderCandlesASCII(symbol string, candles []Candle, width, height int, them
 	}
 
 	// Use the latest close as "current price".
-	lastClose := candles[len(candles)-1].Close
+	lastCandle := candles[len(candles)-1]
+	lastClose := lastCandle.Close
 
 	startTime := candles[0].Time
-	endTime := candles[len(candles)-1].Time
+	endTime := lastCandle.Time
 
 	scale := float64(height-2) / (maxPrice - minPrice)
 
@@ -64,16 +65,31 @@ func RenderCandlesASCII(symbol string, candles []Candle, width, height int, them
 	}
 
 	// Draw border.
-	for x := 0; x < width; x++ {
-		grid[0][x] = '-'
-		grid[height-1][x] = '-'
+	if isSelected {
+		for x := 1; x < width-1; x++ {
+			grid[0][x] = '━'
+			grid[height-1][x] = '━'
+		}
+		for y := 1; y < height-1; y++ {
+			grid[y][0] = '┃'
+			grid[y][width-1] = '┃'
+		}
+		grid[0][0] = '┏'
+		grid[0][width-1] = '┓'
+		grid[height-1][0] = '┗'
+		grid[height-1][width-1] = '┛'
+	} else {
+		for x := 0; x < width; x++ {
+			grid[0][x] = '-'
+			grid[height-1][x] = '-'
+		}
+		for y := 0; y < height; y++ {
+			grid[y][0] = '|'
+			grid[y][width-1] = '|'
+		}
+		grid[0][0], grid[0][width-1] = '+', '+'
+		grid[height-1][0], grid[height-1][width-1] = '+', '+'
 	}
-	for y := 0; y < height; y++ {
-		grid[y][0] = '|'
-		grid[y][width-1] = '|'
-	}
-	grid[0][0], grid[0][width-1] = '+', '+'
-	grid[height-1][0], grid[height-1][width-1] = '+', '+'
 
 	// Draw candles.
 	offsetX := 1
@@ -118,6 +134,31 @@ func RenderCandlesASCII(symbol string, candles []Candle, width, height int, them
 				grid[y][x] = bodyChar
 			}
 		}
+
+		// Time axis ticks
+		if i > 0 {
+			prevCandle := candles[i-1]
+			switch view {
+			case "1D":
+				if c.Time.Hour() != prevCandle.Time.Hour() {
+					grid[height-1][x] = '|'
+				}
+			case "WTD":
+				if c.Time.Day() != prevCandle.Time.Day() {
+					grid[height-1][x] = '|'
+				}
+			case "MTD":
+				_, week := c.Time.ISOWeek()
+				_, prevWeek := prevCandle.Time.ISOWeek()
+				if week != prevWeek {
+					grid[height-1][x] = '|'
+				}
+			case "YTD":
+				if c.Time.Month() != prevCandle.Time.Month() {
+					grid[height-1][x] = '|'
+				}
+			}
+		}
 	}
 
 	lines := make([]string, height)
@@ -134,16 +175,28 @@ func RenderCandlesASCII(symbol string, candles []Candle, width, height int, them
 		lines[i] = line
 	}
 
-	timeInfo := fmt.Sprintf("%s – %s",
-		startTime.Format("Jan 02 15:04"),
-		endTime.Format("Jan 02 15:04"),
-	)
-
 	// Format volume with K/M/B suffixes
-	lastVol := candles[len(candles)-1].Volume
+	lastVol := lastCandle.Volume
 	volStr := formatVolume(lastVol)
 
-	title := fmt.Sprintf(" %s $%.2f (%.2f - %.2f) Vol: %s [%s] ", symbol, lastClose, minPrice, maxPrice, volStr, timeInfo)
+	var title string
+	if isZoomed {
+		change := lastClose - candles[0].Open
+		changePercent := 0.0
+		if candles[0].Open != 0 {
+			changePercent = (change / candles[0].Open) * 100
+		}
+		changeStr := fmt.Sprintf("%+.2f (%+.2f%%)", change, changePercent)
+		title = fmt.Sprintf(" %s | Last: $%.2f | O: %.2f H: %.2f L: %.2f C: %.2f | Range: %.2f-%.2f | Vol: %s | Chg: %s ",
+			symbol, lastClose, lastCandle.Open, lastCandle.High, lastCandle.Low, lastCandle.Close, minPrice, maxPrice, volStr, changeStr)
+	} else {
+		timeInfo := fmt.Sprintf("%s – %s",
+			startTime.Format("Jan 02 15:04"),
+			endTime.Format("Jan 02 15:04"),
+		)
+		title = fmt.Sprintf(" %s $%.2f (%.2f - %.2f) Vol: %s [%s] ", symbol, lastClose, minPrice, maxPrice, volStr, timeInfo)
+	}
+
 	if len(title) > width-2 {
 		title = title[:width-3] + "…"
 	}

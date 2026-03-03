@@ -1,5 +1,5 @@
 BINARY_NAME=crypto-graph-tui
-VERSION=1.1.0
+VERSION=1.1.1
 BUILD_DIR=bin
 GOOS?=$(shell go env GOOS)
 GOARCH?=$(shell go env GOARCH)
