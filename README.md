@@ -47,6 +47,7 @@ The binary will be created as `./crypto-graph-tui-<OS>-<ARCH>`. For example, bui
 ```
 
 ![Screenshot](Screenshot.jpg)
+![Screenshot Zoomed](Screenshot_zoomed.jpg)
 
 ### Command-line options
 
@@ -128,7 +129,6 @@ The app automatically saves your symbol selections and preferred timeframe.
 Set the environment variable `CMC_DEBUG=1` to enable verbose HTTP
 logging from the CoinGecko/Coinbase providers. Useful for troubleshooting
 network errors or examining request URLs.
-
 
 Charts are powered by:
 
