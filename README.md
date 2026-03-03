@@ -85,6 +85,7 @@ Symbol names can be uppercase or lowercase; `-USD` suffix is optional.
 
 | Key | Action |
 |-----|--------|
+| **Space** | Refresh all charts |
 | **A** | Open symbol selection modal |
 | **1** | Switch to 1D (daily) view |
 | **2** | Switch to WTD (week-to-date) view |

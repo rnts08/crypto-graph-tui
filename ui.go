@@ -8,11 +8,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model represents the application state
 // UIMode indicates which screen is active
 // (declared before constants for readability)
 type UIMode string
 
+// Model holds the entire state of the application
 type Model struct {
 	// UI state
 	width           int
@@ -29,7 +29,8 @@ type Model struct {
 	symbols []string
 
 	// Refresh timing
-	nextRefresh time.Time
+	nextRefresh      time.Time
+	pendingRefreshes int
 
 	// Navigation (for symbol list)
 	symbolListIndex int
@@ -37,8 +38,12 @@ type Model struct {
 
 	// custom entry buffer
 	customInput string
+
+	// Spinner
+	spinnerState int
 }
 
+// UIModes
 const (
 	ModeMain         UIMode = "main"
 	ModeAddSymbol    UIMode = "addSymbol"
@@ -46,6 +51,7 @@ const (
 	ModeCustomSymbol UIMode = "customSymbol"
 )
 
+// ChartData holds the data and state for a single symbol's chart
 type ChartData struct {
 	Symbol  string
 	Candles []Candle
@@ -53,12 +59,21 @@ type ChartData struct {
 	Updated time.Time
 }
 
+var spinnerChars = []string{"|", "/", "-", "\\"}
+
 // Messages for bubbletea framework
 type tickMsg time.Time
 type refreshMsg struct {
 	symbol string
 	data   []Candle
 	err    error
+}
+type spinnerTickMsg struct{}
+
+func spinnerTick() tea.Cmd {
+	return tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
+		return spinnerTickMsg{}
+	})
 }
 
 // NewModel creates a new application model
@@ -77,8 +92,10 @@ func NewModel(cfg *Config, client *Client) *Model {
 			"NOBODY-USD", "SUI-USD", "HYPE-USD", "AZERO-USD", "LINK-USD",
 			"TRUMP-USD", "TOWNS-USD", "SNX-USD", "MON-USD",
 		},
-		mode:        ModeMain,
-		nextRefresh: time.Now().Add(time.Duration(cfg.RefreshInterval) * time.Second),
+		mode:             ModeMain,
+		nextRefresh:      time.Now().Add(time.Duration(cfg.RefreshInterval) * time.Second),
+		pendingRefreshes: 0,
+		spinnerState:     0,
 	}
 }
 
@@ -89,10 +106,12 @@ func (m *Model) Init() tea.Cmd {
 		m.charts[sym] = &ChartData{Symbol: sym}
 	}
 
+	m.pendingRefreshes = len(m.symbols)
 	// Return batch of commands
 	return tea.Batch(
 		m.fetchAllChartsCmd(),
 		m.tickCmd(),
+		spinnerTick(),
 	)
 }
 
@@ -116,6 +135,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.tickCmd()
 
 	case refreshMsg:
+		if m.pendingRefreshes > 0 {
+			m.pendingRefreshes--
+		}
 		if msg.err == nil && len(msg.data) > 0 {
 			m.charts[msg.symbol].Candles = msg.data
 			m.charts[msg.symbol].Error = ""
@@ -123,6 +145,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.charts[msg.symbol].Error = msg.err.Error()
 		}
 		m.charts[msg.symbol].Updated = time.Now()
+		return m, nil
+
+	case spinnerTickMsg:
+		if m.pendingRefreshes > 0 {
+			m.spinnerState = (m.spinnerState + 1) % len(spinnerChars)
+			return m, spinnerTick()
+		}
 		return m, nil
 
 	case tea.QuitMsg:
@@ -171,21 +200,25 @@ func (m *Model) handleMainKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case " ":
+		m.nextRefresh = time.Now().Add(time.Duration(m.config.RefreshInterval) * time.Second)
+		return m, m.startRefreshCmd()
+
 	case "1":
 		m.view = "1D"
-		return m, m.fetchAllChartsCmd()
+		return m, m.startRefreshCmd()
 
 	case "2":
 		m.view = "WTD"
-		return m, m.fetchAllChartsCmd()
+		return m, m.startRefreshCmd()
 
 	case "3":
 		m.view = "MTD"
-		return m, m.fetchAllChartsCmd()
+		return m, m.startRefreshCmd()
 
 	case "4":
 		m.view = "YTD"
-		return m, m.fetchAllChartsCmd()
+		return m, m.startRefreshCmd()
 	}
 
 	return m, nil
@@ -253,7 +286,7 @@ func (m *Model) handleAddSymbolKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		m.mode = ModeMain
 		m.selectedSymbols = make(map[string]bool)
-		return m, m.fetchAllChartsCmd()
+		return m, m.startRefreshCmd()
 
 	case "ctrl+c":
 		return m, tea.Quit
@@ -348,8 +381,14 @@ func (m *Model) viewMain() string {
 	}
 	mins := int(nextIn.Seconds()) / 60
 	secs := int(nextIn.Seconds()) % 60
-	statusBar := fmt.Sprintf("v%s | Refresh in %02d:%02d | View: %s | A=add 1-4=timeframe Q=quit",
-		version, mins, secs, m.view)
+
+	spinner := ""
+	if m.pendingRefreshes > 0 {
+		spinner = fmt.Sprintf(" %s Refreshing...", spinnerChars[m.spinnerState])
+	}
+
+	statusBar := fmt.Sprintf("v%s | Refresh in %02d:%02d | View: %s | A=add 1-4=timeframe SPACE=refresh Q=quit%s",
+		version, mins, secs, m.view, spinner)
 
 	// Use grid layout (balanced rows/cols via shared utility)
 	r, c := GridForCount(len(m.symbols))
@@ -424,8 +463,8 @@ func (m *Model) viewAddSymbol() string {
 	var lines []string
 	lines = append(lines, "")
 	lines = append(lines, "  ╔══════════════════════════════════════╗")
-	lines = append(lines, "  ║  SELECT SYMBOLS                        ║")
-	lines = append(lines, "  ║  ↑↓ navigate, SPACE toggle, ENTER ok  ║")
+	lines = append(lines, "  ║  SELECT SYMBOLS                      ║")
+	lines = append(lines, "  ║  ↑↓ navigate, SPACE toggle, ENTER ok ║")
 	lines = append(lines, "  ╚══════════════════════════════════════╝")
 	lines = append(lines, "")
 
@@ -467,7 +506,7 @@ func (m *Model) viewConfirmQuit() string {
   ║      Quit graph-watcher?               ║
   ║                                        ║
   ║      (Y)es or (N)o                     ║
-  ║      Ctrl+C to quit immediately       ║
+  ║      Ctrl+C to quit immediately        ║
   ║                                        ║
   ╚════════════════════════════════════════╝
 `
@@ -478,6 +517,14 @@ func (m *Model) tickCmd() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
+}
+
+func (m *Model) startRefreshCmd() tea.Cmd {
+	if len(m.symbols) > 0 {
+		m.pendingRefreshes = len(m.symbols)
+		return tea.Batch(m.fetchAllChartsCmd(), spinnerTick())
+	}
+	return nil
 }
 
 // concurrency semaphore for fetching symbols.
